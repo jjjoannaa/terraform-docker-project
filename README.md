@@ -1,33 +1,65 @@
-# Automated Infrastructure Validation Using Terraform and Docker
+
+# Terraform Docker CI/CD Pipeline
+
+![CI/CD Pipeline](https://github.com/jjjoannaa/terraform-docker-project/actions/workflows/cicd.yml/badge.svg)
 
 ## Project Overview
 
-**Selected Option: Option 4 — Automated Infrastructure Validation**
+This project demonstrates an automated CI/CD pipeline integrating
+GitHub, GitHub Actions, Terraform and Docker. It automatically builds,
+deploys and verifies a custom Nginx web application whenever changes
+are pushed to the main branch.
 
-This project demonstrates Infrastructure as Code (IaC) using Terraform to deploy and manage a two-container Docker environment. An Nginx web server serves a custom HTML page while an Alpine Linux container performs automated HTTP validation.
+## Technologies
 
-## Industry Application
-
-Automated infrastructure validation is used in DevOps and CI/CD pipelines to verify that deployed services are functioning correctly. This project demonstrates how automated testing can detect connectivity issues and incorrect application responses before further deployment.
+- Git and GitHub
+- GitHub Actions
+- Terraform
+- Docker
+- Nginx
+- Alpine Linux
+- Bash
 
 ## Infrastructure
 
-- **Nginx (web):** Serves a custom HTML webpage.
-- **Alpine Linux (test-client):** Performs HTTP connectivity tests.
-- **Docker network (validation-network):** Enables container-to-container communication using container names.
-- **Bind mount:** Mounts the local index.html file into the Nginx container as read-only.
-- **test.sh:** Automatically validates HTTP connectivity and webpage content.
+- Custom Docker image: validation-web:1.0
+- Nginx web container: web
+- Alpine testing container: test-client
+- Custom Docker network: validation-network
 
-## Prerequisites
+The application source code is packaged directly into the custom
+Docker image. The Alpine container communicates with the Nginx
+container through the shared Docker network.
 
-- Terraform
-- Docker Desktop or Docker Engine
-- Git
-- Bash
+## Automated CI/CD Workflow
 
-## Deployment
+The workflow runs on a GitHub-hosted Ubuntu runner using its local
+Docker environment.
+
+1. Checkout the repository.
+2. Install Terraform.
+3. Build the custom Docker image.
+4. Initialize and validate Terraform.
+5. Generate the Terraform deployment plan.
+6. Apply the Terraform configuration.
+7. Verify running containers.
+8. Execute automated application tests.
+9. Verify infrastructure consistency.
+10. Destroy temporary infrastructure.
+
+The workflow automatically runs on pushes to the main branch.
+Manual execution is also supported through workflow_dispatch.
+
+## Local Deployment
+
+Prerequisites: Git, Terraform and a running Docker environment.
 
 ```bash
+git clone https://github.com/jjjoannaa/terraform-docker-project.git
+cd terraform-docker-project
+
+docker build -t validation-web:1.0 .
+
 terraform init
 terraform fmt
 terraform validate
@@ -35,50 +67,28 @@ terraform plan
 terraform apply
 ```
 
-Enter `yes` when prompted.
-
-## Verification
-
-Verify the running containers and custom network:
+## Application Verification
 
 ```bash
 docker ps
-docker network inspect validation-network
-```
-
-Test container-to-container communication:
-
-```bash
 docker exec test-client wget -qO- http://web
-```
-
-Verify the bind mount:
-
-```bash
-docker inspect web --format '{{json .Mounts}}'
-```
-
-Run automated infrastructure validation:
-
-```bash
-chmod +x test.sh
 ./test.sh
-echo "Exit code: $?"
 ```
 
-The script returns exit code 0 when all tests pass and exit code 1 if a test fails.
+Expected results:
 
-## Terraform Lifecycle Verification
+- Nginx is reachable from Alpine.
+- Custom webpage content verified.
+- ALL TESTS PASSED.
+
+## Infrastructure Consistency
 
 ```bash
 terraform plan
 ```
 
-Expected result: No changes. Your infrastructure matches the configuration.
-
-## Troubleshooting
-
-During initial testing, Docker encountered an I/O error when accessing the bind-mounted HTML file from the macOS Desktop directory. Moving the project to a directory outside Desktop and recreating the Nginx container resolved the issue.
+Expected result: No changes. Your infrastructure matches
+the configuration.
 
 ## Cleanup
 
@@ -86,4 +96,11 @@ During initial testing, Docker encountered an I/O error when accessing the bind-
 terraform destroy
 ```
 
-Enter `yes` when prompted to remove the provisioned infrastructure.
+GitHub Actions automatically destroys its temporary infrastructure
+after verification.
+
+## Industry Relevance
+
+This project demonstrates DevOps practices including Infrastructure
+as Code, automated application builds, continuous integration,
+automated deployment and infrastructure validation.
