@@ -1,0 +1,76 @@
+
+name: Terraform Docker CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-deploy-test:
+    name: Build, Deploy and Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.17.2"
+
+      - name: Verify environment
+        run: |
+          terraform version
+          docker version
+
+      - name: Build custom Docker image
+        run: |
+          docker build -t validation-web:1.0 .
+          docker images validation-web
+
+      - name: Initialize Terraform
+        run: terraform init -input=false
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check
+
+      - name: Validate Terraform
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform apply
+        run: terraform apply -input=false tfplan
+
+      - name: Verify running containers
+        run: |
+          docker ps
+          docker network inspect validation-network
+
+      - name: Automated application testing
+        run: |
+          chmod +x test.sh
+          for attempt in {1..10}; do
+            if docker exec test-client wget -qO- -T 5 http://web > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          ./test.sh
+
+      - name: Verify infrastructure consistency
+        run: terraform plan -input=false -detailed-exitcode
+
+      - name: Destroy infrastructure
+        if: always()
+        run: |
+          if [ -f terraform.tfstate ]; then
+            terraform destroy -auto-approve -input=false
+          fi
